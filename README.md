@@ -44,6 +44,8 @@ cd upstream && pnpm install --frozen-lockfile --ignore-scripts && pnpm exec svel
 node build.mjs   # → package/ + npm pack
 ```
 
+Adapter `src/` imports Upstream via `$lib/…`. Root `tsconfig.json` + `svelte.config.js` alias those paths into `upstream/` for the IDE. The build stages the same layout under `.build/stage/` (never writes into `upstream/`). Requires the Upstream install + `svelte-kit sync` above.
+
 Smoke Host (fixture data): `examples/consumer`.
 
 ```sh

@@ -1,10 +1,15 @@
 /**
  * Canonical Adapter package build (repo root).
  *
- * Build @forkbombeu/temporal-ui from pristine Upstream + Adapter overlay.
+ * Build @forkbombeu/temporal-ui from pristine Upstream + Adapter `src/`.
+ * Upstream is never mutated: staging happens under `.build/stage/`.
  *
- * Flow: overlay → svelte-package → prune import graph → scoped/split Tailwind CSS
- * → optional @buf vendoring → trim deps → package.json.
+ * Flow: stage (Upstream lib + Adapter as forkbomb) → svelte-package → prune import
+ * graph → scoped/split Tailwind CSS → optional @buf vendoring → trim deps → package.json.
+ *
+ * IDE and stage share the same mental model: Adapter imports `$lib/…` which means
+ * Upstream `src/lib` (root `svelte.config.js` / `tsconfig.json` for edit-time;
+ * stage `svelte.config.js` points `$lib` at the staged lib for packaging).
  *
  * CSS split: two Tailwind builds with different `content` arrays. Status content =
  * Rollup graph from `forkbomb/workflow-status.svelte` (badge-only). History content =
@@ -34,6 +39,8 @@ import {
   openSync,
   closeSync,
   unlinkSync,
+  symlinkSync,
+  lstatSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -42,6 +49,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const upstream = resolve(process.env.UPSTREAM_DIR || join(here, 'upstream'));
 const buildDir = join(here, '.build');
+const stageDir = join(buildDir, 'stage');
 const fullDist = join(buildDir, 'full');
 const pkgDir = join(here, 'package');
 const dist = join(pkgDir, 'dist');
@@ -50,7 +58,7 @@ const PACKAGE_VERSION_SUFFIX = '-fb.0';
 const lockPath = join(here, '.build.lock');
 
 const adapterSrc = join(here, 'src');
-const overlay = join(upstream, 'src/lib/forkbomb');
+const upstreamLib = join(upstream, 'src/lib');
 
 if (!existsSync(join(adapterSrc, 'workflow-history.svelte'))) {
   console.error(`Adapter sources not found at ${adapterSrc}`);
@@ -75,11 +83,19 @@ const bin = (name) => join(upstream, 'node_modules/.bin', name);
 
 /** rmSync can hit transient ENOTEMPTY on macOS; retry then fall back to rm -rf. */
 function rmrf(path) {
-  if (!existsSync(path)) return;
+  try {
+    lstatSync(path);
+  } catch {
+    return;
+  }
   for (let i = 0; i < 8; i++) {
     try {
       rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
-      if (!existsSync(path)) return;
+      try {
+        lstatSync(path);
+      } catch {
+        return;
+      }
     } catch {
       /* retry */
     }
@@ -88,10 +104,115 @@ function rmrf(path) {
     } catch {
       /* retry */
     }
-    if (!existsSync(path)) return;
+    try {
+      lstatSync(path);
+    } catch {
+      return;
+    }
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100 * (i + 1));
   }
-  if (existsSync(path)) throw new Error(`Failed to remove ${path}`);
+  throw new Error(`Failed to remove ${path}`);
+}
+
+function linkOrCopy(target, linkPath) {
+  rmrf(linkPath);
+  mkdirSync(dirname(linkPath), { recursive: true });
+  symlinkSync(target, linkPath);
+}
+
+/** Stage Upstream lib + Adapter under `.build/stage` (Upstream tree stays pristine). */
+function prepareStage() {
+  rmrf(stageDir);
+  const stageLib = join(stageDir, 'src/lib');
+  mkdirSync(join(stageDir, 'src'), { recursive: true });
+  cpSync(upstreamLib, stageLib, { recursive: true });
+  cpSync(adapterSrc, join(stageLib, 'forkbomb'), { recursive: true });
+
+  writeFileSync(
+    join(stageDir, 'package.json'),
+    `${JSON.stringify(
+      {
+        name: '@forkbombeu/temporal-ui-stage',
+        private: true,
+        type: 'module',
+        version: '0.0.0',
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  writeFileSync(
+    join(stageDir, 'svelte.config.js'),
+    `import { sveltePreprocess } from 'svelte-preprocess';
+
+/** @type {import('@sveltejs/kit').Config} */
+export default {
+  preprocess: [sveltePreprocess({ postcss: true })],
+  compilerOptions: {
+    runes: ({ filename }) =>
+      filename.includes('node_modules') ? undefined : true,
+  },
+  kit: {
+    alias: {
+      $lib: 'src/lib',
+      '$lib/*': 'src/lib/*',
+      $types: 'src/lib/types',
+      '$types/*': 'src/lib/types/*',
+      '$components/*': 'src/components/*',
+    },
+  },
+};
+`,
+  );
+
+  writeFileSync(
+    join(stageDir, 'tsconfig.json'),
+    `${JSON.stringify(
+      {
+        compilerOptions: {
+          baseUrl: '.',
+          ignoreDeprecations: '6.0',
+          module: 'esnext',
+          moduleResolution: 'bundler',
+          target: 'esnext',
+          lib: ['esnext', 'DOM', 'DOM.Iterable'],
+          strict: true,
+          skipLibCheck: true,
+          resolveJsonModule: true,
+          verbatimModuleSyntax: true,
+          isolatedModules: true,
+          declaration: true,
+          emitDeclarationOnly: true,
+          allowJs: true,
+          checkJs: false,
+          paths: {
+            $lib: ['./src/lib'],
+            '$lib/*': ['./src/lib/*'],
+            $types: ['./src/lib/types'],
+            '$types/*': ['./src/lib/types/*'],
+            '$components/*': ['./src/components/*'],
+          },
+        },
+        include: ['src/lib/**/*'],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+
+  linkOrCopy(join(upstream, 'node_modules'), join(stageDir, 'node_modules'));
+  linkOrCopy(join(upstream, '.svelte-kit'), join(stageDir, '.svelte-kit'));
+  linkOrCopy(join(upstream, 'postcss.config.cjs'), join(stageDir, 'postcss.config.cjs'));
+  linkOrCopy(join(upstream, 'tailwind.config.ts'), join(stageDir, 'tailwind.config.ts'));
+  // $components/* and app.css live outside lib; link for preprocess / rare imports.
+  linkOrCopy(join(upstream, 'src/components'), join(stageDir, 'src/components'));
+  linkOrCopy(join(upstream, 'src/app.css'), join(stageDir, 'src/app.css'));
+
+  if (!existsSync(join(stageLib, 'forkbomb/index.ts'))) {
+    throw new Error(`Stage missing Adapter entry: ${join(stageLib, 'forkbomb/index.ts')}`);
+  }
+  return stageLib;
 }
 
 function packageName(spec) {
@@ -293,7 +414,7 @@ function vendorBufPackages(runtimeUsed) {
   return vendored;
 }
 
-// Exclusive lock — concurrent builds delete the overlay mid-svelte-package.
+// Exclusive lock — concurrent builds race on `.build/stage` / package output.
 let lockFd;
 try {
   lockFd = openSync(lockPath, 'wx');
@@ -309,28 +430,18 @@ process.on('exit', releaseLock);
 process.on('SIGINT', () => { releaseLock(); process.exit(130); });
 process.on('SIGTERM', () => { releaseLock(); process.exit(143); });
 
-// ── 1. Overlay Adapter onto pristine Upstream and package ──────────────────
-rmrf(overlay);
-mkdirSync(dirname(overlay), { recursive: true });
-cpSync(adapterSrc, overlay, { recursive: true });
-// Package into Upstream first (more reliable than cross-tree -o), then move.
-const upstreamPkgOut = join(upstream, '.svelte-kit/__forkbomb_package__');
-rmrf(upstreamPkgOut);
+// ── 1. Stage Adapter + Upstream lib (Upstream tree stays pristine) ─────────
+prepareStage();
+const stagePkgOut = join(buildDir, 'stage-package');
+rmrf(stagePkgOut);
 rmrf(fullDist);
-try {
-  if (!existsSync(join(overlay, 'index.ts'))) {
-    throw new Error(`Overlay missing after copy: ${overlay}`);
-  }
-  execFileSync(bin('svelte-package'), ['-o', upstreamPkgOut], {
-    cwd: upstream,
-    stdio: 'inherit',
-  });
-  mkdirSync(dirname(fullDist), { recursive: true });
-  cpSync(upstreamPkgOut, fullDist, { recursive: true });
-} finally {
-  rmrf(upstreamPkgOut);
-  rmrf(overlay);
-}
+execFileSync(bin('svelte-package'), ['-i', 'src/lib', '-o', stagePkgOut, '--tsconfig', 'tsconfig.json'], {
+  cwd: stageDir,
+  stdio: 'inherit',
+});
+mkdirSync(dirname(fullDist), { recursive: true });
+cpSync(stagePkgOut, fullDist, { recursive: true });
+rmrf(stagePkgOut);
 
 // ── 2. Runtime graphs (status vs history for CSS; union for package keep) ──
 const statusGraph = await collectGraph('forkbomb/workflow-status.svelte');

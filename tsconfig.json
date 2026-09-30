@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "esnext",
+    "lib": ["esnext", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "paths": {
+      "$lib": ["./upstream/src/lib"],
+      "$lib/*": ["./upstream/src/lib/*"],
+      "$types": ["./upstream/src/lib/types"],
+      "$types/*": ["./upstream/src/lib/types/*"],
+      "$components/*": ["./upstream/src/components/*"],
+      "svelte": ["./upstream/node_modules/svelte"],
+      "svelte/*": ["./upstream/node_modules/svelte/*"],
+      "i18next": ["./upstream/node_modules/i18next"],
+      "@sveltejs/kit": ["./upstream/node_modules/@sveltejs/kit"],
+      "@sveltejs/kit/*": ["./upstream/node_modules/@sveltejs/kit/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.svelte",
+    "upstream/.svelte-kit/ambient.d.ts",
+    "upstream/.svelte-kit/non-ambient.d.ts"
+  ]
+}

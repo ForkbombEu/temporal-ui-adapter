@@ -1,27 +1,27 @@
 <script lang="ts">
-  import { setContext } from 'svelte';
+  import { setContext } from "svelte";
 
   import {
     HISTORY_CTX,
     type HistoryContext,
-  } from '$lib/contexts/history-context';
-  import WorkflowHistoryLayout from '$lib/layouts/workflow-history-layout.svelte';
-  import { toWorkflowExecution } from '$lib/models/workflow-execution';
+  } from "$lib/contexts/history-context";
+  import WorkflowHistoryLayout from "$lib/layouts/workflow-history-layout.svelte";
+  import { toWorkflowExecution } from "$lib/models/workflow-execution";
   // v2.54.1 overlay target. Absent from fork v2.52 `src/` (uses fullEventHistory stores).
   import {
     ingestHistoryEvent,
     reset,
     setPendingMetadata,
-  } from '$lib/services/grouped-event-buffer';
-  import { workflowRun } from '$lib/stores/workflow-run';
-  import type { HistoryEvent } from '$lib/types/events';
-  import type { TaskQueueResponse } from '$lib/types';
-  import type { WorkflowExecutionAPIResponse } from '$lib/types/workflows';
+  } from "$lib/services/grouped-event-buffer";
+  import { workflowRun } from "$lib/stores/workflow-run";
+  import type { HistoryEvent } from "$lib/types/events";
+  import type { TaskQueueResponse } from "$lib/types";
+  import type { WorkflowExecutionAPIResponse } from "$lib/types/workflows";
 
-  import { ensureI18n } from './ensure-i18n';
-  import './workflow-history.css';
+  import { ensureI18n } from "./ensure-i18n";
+  import "./workflow-history.css";
 
-  type Props = {
+  export type WorkflowHistoryProps = {
     /** Temporal GetWorkflowExecution / describe-execution API body. */
     execution: WorkflowExecutionAPIResponse;
     /** Raw history events (ingest converts via Upstream `toWorkflowEvent`). */
@@ -31,11 +31,12 @@
     workers?: TaskQueueResponse;
   };
 
-  let { execution, history, namespace, workers }: Props = $props();
+  let { execution, history, namespace, workers }: WorkflowHistoryProps =
+    $props();
 
   const workflow = $derived.by(() => {
     const model = toWorkflowExecution(execution);
-    Object.defineProperty(model, 'canBeTerminated', {
+    Object.defineProperty(model, "canBeTerminated", {
       value: false,
       configurable: true,
     });
