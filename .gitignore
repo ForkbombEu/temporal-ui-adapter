@@ -7,13 +7,9 @@ node_modules
 /.build.lockdir
 /package
 /coverage
-.analysis/adapter/.build
-.analysis/adapter/package
-.analysis/consumer/node_modules
-.analysis/consumer/.svelte-kit
-.analysis/consumer/build
-.analysis/consumer/temporal-ui.tgz
+examples/consumer/node_modules
+examples/consumer/.svelte-kit
+examples/consumer/build
+examples/consumer/temporal-ui.tgz
 upstream/node_modules
 upstream/.svelte-kit
-.analysis/adapter/.work-upstream
-.analysis/adapter/node_modules

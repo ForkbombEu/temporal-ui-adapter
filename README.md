@@ -44,4 +44,12 @@ cd upstream && pnpm install --frozen-lockfile --ignore-scripts && pnpm exec svel
 node build.mjs   # → package/ + npm pack
 ```
 
+Smoke Host (fixture data): `examples/consumer`.
+
+```sh
+cp package/forkbombeu-temporal-ui-*.tgz examples/consumer/temporal-ui.tgz
+cd examples/consumer && pnpm install --ignore-workspace && pnpm add --ignore-workspace ./temporal-ui.tgz
+pnpm run build && pnpm exec vite preview --port 5199 --strictPort
+```
+
 Requires Node ≥ 22.14 and pnpm ≥ 10.10.

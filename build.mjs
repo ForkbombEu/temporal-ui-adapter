@@ -49,18 +49,13 @@ const SCOPE = '.temporal-ui';
 const PACKAGE_VERSION_SUFFIX = '-fb.0';
 const lockPath = join(here, '.build.lock');
 
-/** Prefer root src/forkbomb, else lean PoC under .analysis/adapter/src. */
-function resolveAdapterSrc() {
-  const forkbomb = join(here, 'src/forkbomb');
-  if (existsSync(join(forkbomb, 'workflow-history.svelte'))) return forkbomb;
-  const rootSrc = join(here, 'src');
-  if (existsSync(join(rootSrc, 'workflow-history.svelte'))) return rootSrc;
-  return join(here, '.analysis/adapter/src');
-}
-
-const adapterSrc = resolveAdapterSrc();
+const adapterSrc = join(here, 'src');
 const overlay = join(upstream, 'src/lib/forkbomb');
 
+if (!existsSync(join(adapterSrc, 'workflow-history.svelte'))) {
+  console.error(`Adapter sources not found at ${adapterSrc}`);
+  process.exit(1);
+}
 if (!existsSync(join(upstream, 'package.json'))) {
   console.error(
     `Upstream not found at ${upstream}. Set UPSTREAM_DIR or init the submodule.`,
@@ -72,10 +67,6 @@ if (!existsSync(join(upstream, 'node_modules/.bin/svelte-package'))) {
     `Upstream at ${upstream} is not installed (missing node_modules/.bin/svelte-package).\n` +
       `  cd upstream && pnpm install --frozen-lockfile --ignore-scripts && pnpm exec svelte-kit sync`,
   );
-  process.exit(1);
-}
-if (!existsSync(adapterSrc)) {
-  console.error(`Adapter sources not found at ${adapterSrc}`);
   process.exit(1);
 }
 
