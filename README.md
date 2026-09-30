@@ -76,9 +76,12 @@ writes into `upstream/`). Re-run `sync:upstream` after bumping the submodule pin
 # from repo root (after pnpm build → package/)
 cd examples/consumer && pnpm install
 pnpm run build && pnpm exec vite preview --port 5199 --strictPort
+# or: pnpm dev  (clears Vite dep cache so file:../../package updates show up)
 ```
 
 Consumer depends on `file:../../package` (the build output dir). If install fails with
-ENOENT on that path, run `pnpm build` at the repo root first.
+ENOENT on that path, run `pnpm build` at the repo root first. After rebuilding the
+Adapter, restart `pnpm dev` (it wipes `node_modules/.vite`) so you are not stuck
+on a stale prebundle.
 
 Requires Node ≥ 22.14 and pnpm ≥ 10.10.

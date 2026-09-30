@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "node -e \"require('node:fs').accessSync('../../package/package.json')\"",
-    "dev": "vite dev --port 5199",
+    "dev": "rm -rf node_modules/.vite && vite dev --port 5199 --force",
     "build": "vite build"
   },
   "devDependencies": {
