@@ -9,14 +9,8 @@ importers:
   .:
     dependencies:
       '@forkbombeu/temporal-ui':
-        specifier: file:temporal-ui.tgz
-        version: file:temporal-ui.tgz(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(date-fns-tz@1.3.8(date-fns@2.29.3))(date-fns@2.29.3)(svelte@5.57.1)
-      date-fns:
-        specifier: 2.29.3
-        version: 2.29.3
-      date-fns-tz:
-        specifier: 1.3.8
-        version: 1.3.8(date-fns@2.29.3)
+        specifier: file:../../package
+        version: file:../../package(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.8
@@ -256,16 +250,13 @@ packages:
   '@exodus/schemasafe@1.3.0':
     resolution: {integrity: sha512-5Aap/GaRupgNx/feGBwLLTVv8OQFfv3pq2lPRzPg9R+IOBnDgghTGW7l7EuVXOvg5cc/xSAlRW8rBrjIC3Nvqw==}
 
-  '@forkbombeu/temporal-ui@file:temporal-ui.tgz':
-    resolution: {integrity: sha512-jsouJY41s/GY6TObvYAJ6+9/wbqIuaXqiMWEAQhUEBuA6a3pKU/qQGp3FshdaZoGuwKld7Ba6aZ1L5AgqWzOwg==, tarball: file:temporal-ui.tgz}
-    version: 2.54.1-fb.0
+  '@forkbombeu/temporal-ui@file:../../package':
+    resolution: {directory: ../../package, type: directory}
     peerDependencies:
       '@sveltejs/kit': ^2.53.0
       '@temporalio/client': 1.22.0
       '@temporalio/common': 1.22.0
       '@temporalio/proto': 1.22.0
-      date-fns: 2.29.x
-      date-fns-tz: 1.3.x
       svelte: ^5.53.3
     peerDependenciesMeta:
       '@temporalio/client':
@@ -1247,7 +1238,7 @@ snapshots:
   '@exodus/schemasafe@1.3.0':
     optional: true
 
-  '@forkbombeu/temporal-ui@file:temporal-ui.tgz(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(date-fns-tz@1.3.8(date-fns@2.29.3))(date-fns@2.29.3)(svelte@5.57.1)':
+  '@forkbombeu/temporal-ui@file:../../package(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)':
     dependencies:
       '@bufbuild/protobuf': 2.16.0
       '@codemirror/autocomplete': 6.20.3

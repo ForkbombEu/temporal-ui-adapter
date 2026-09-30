@@ -6,6 +6,7 @@
     type HistoryContext,
   } from "$lib/contexts/history-context";
   import WorkflowHistoryLayout from "$lib/layouts/workflow-history-layout.svelte";
+  import WorkflowTimelineLayout from "$lib/layouts/workflow-timeline-layout.svelte";
   import { toWorkflowExecution } from "$lib/models/workflow-execution";
   // v2.54.1 overlay target. Absent from fork v2.52 `src/` (uses fullEventHistory stores).
   import {
@@ -13,6 +14,8 @@
     reset,
     setPendingMetadata,
   } from "$lib/services/grouped-event-buffer";
+  import { eventBuffer } from "$lib/services/grouped-event-buffer.svelte";
+  import { fullEventHistory } from "$lib/stores/events";
   import { workflowRun } from "$lib/stores/workflow-run";
   import type { HistoryEvent } from "$lib/types/events";
   import type { TaskQueueResponse } from "$lib/types";
@@ -85,8 +88,14 @@
     if (bufferedRunId !== workflow.runId) {
       reset(history.length);
       bufferedRunId = workflow.runId;
+      fullEventHistory.set([]);
     }
     for (const event of history) ingestHistoryEvent(event);
+  });
+
+  // Upstream workflow-run-layout mirrors buffer → fullEventHistory for Input/Result.
+  $effect(() => {
+    fullEventHistory.set(eventBuffer.events);
   });
 </script>
 
@@ -96,11 +105,28 @@
     data-forkbomb="workflow-history"
     data-namespace={namespace}
   >
-    <WorkflowHistoryLayout />
+    <div class="views">
+      <WorkflowTimelineLayout />
+      <!-- History below timeline; hide duplicate Input/Result + error chrome. -->
+      <div class="history-below">
+        <WorkflowHistoryLayout />
+      </div>
+    </div>
   </div>
 {/await}
 
 <style>
+  .views {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* Both Upstream layouts own Input/Result — keep the timeline copy only. */
+  .history-below :global([data-testid="input-and-result"]) {
+    display: none;
+  }
+
   /* Prefer CSS-only link disable — no Upstream patches. */
   :global(.temporal-ui a[href]) {
     pointer-events: none;

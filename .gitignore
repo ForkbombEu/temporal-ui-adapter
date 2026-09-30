@@ -15,3 +15,4 @@ examples/consumer/build
 examples/consumer/temporal-ui.tgz
 upstream/node_modules
 upstream/.svelte-kit
+.pnpm-store

@@ -427,6 +427,31 @@ const runtimeImports = new Set([
 // ── 3. Declaration graph ───────────────────────────────────────────────────
 const { keep, typeImports } = expandDeclarationGraph(runtimeFiles);
 
+/**
+ * Host Vite 7 SSR breaks `import * as x from 'date-fns-tz'` (CJS): named members
+ * are undefined. Rewrite to default-import + normalize so Hosts don't need a Vite quirk.
+ */
+function fixDateFnsTzInterop(dir) {
+  const rewrite = (file) => {
+    const src = readFileSync(file, 'utf8');
+    const next = src.replace(
+      /import \* as (\w+) from ['"]date-fns-tz['"];/g,
+      (_m, id) =>
+        `import ${id}Default from 'date-fns-tz';\n` +
+        `const ${id} = ${id}Default?.utcToZonedTime ? ${id}Default : (${id}Default?.default ?? ${id}Default);`,
+    );
+    if (next !== src) writeFileSync(file, next);
+  };
+  const walk = (d) => {
+    for (const ent of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, ent.name);
+      if (ent.isDirectory()) walk(p);
+      else if (ent.name.endsWith('.js')) rewrite(p);
+    }
+  };
+  walk(dir);
+}
+
 // ── 4. Copy kept files into publishable package ────────────────────────────
 rmrf(pkgDir);
 for (const file of keep) {
@@ -434,6 +459,7 @@ for (const file of keep) {
   mkdirSync(dirname(target), { recursive: true });
   cpSync(file, target);
 }
+fixDateFnsTzInterop(dist);
 
 // ── 5. Scoped + split CSS (overwrite stub sheets next to components) ───────
 compileScopedCss(
@@ -474,6 +500,19 @@ const peerDependenciesMeta = Object.fromEntries(
 let dependencies = pick(
   new Set([...runtimeUsed].filter((n) => !(n in upstreamPkg.peerDependencies))),
 );
+
+// Host need not install these — pin Upstream's versions as our runtime deps.
+// Do NOT do this for `svelte` / `@sveltejs/kit`: Hosts must share one runtime.
+const bundleAsDeps = ['date-fns', 'date-fns-tz'];
+for (const name of bundleAsDeps) {
+  const ver =
+    peerDependencies[name] ??
+    upstreamPkg.peerDependencies?.[name] ??
+    declared[name];
+  delete peerDependencies[name];
+  delete peerDependenciesMeta[name];
+  if (ver && (used.has(name) || runtimeUsed.has(name))) dependencies[name] = ver;
+}
 
 const vendoredBuf = vendorBufPackages(runtimeUsed);
 for (const name of vendoredBuf) delete dependencies[name];

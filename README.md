@@ -42,6 +42,24 @@ Exploration branch (`explore/derived-deps-kit-root`): root deps are derived from
 Upstream. Install at the **repo root** (not inside `upstream/`). There is no root
 app page — the Host demo is `examples/consumer`.
 
+Tooling is pinned in `.tool-versions` (Node 22.18 / pnpm 10.15). With [mise](https://mise.jdx.dev/):
+
+```sh
+mise install          # once per machine / after pin bumps
+# ensure shell hook: eval "$(mise activate zsh)"  # or bash/fish
+pnpm -v               # should be ≥10.10 (mise pin is 10.15)
+```
+
+If `pnpm -v` still shows 9.x, a global install (e.g. `~/Library/pnpm`) is shadowing mise — prefer:
+
+```sh
+mise which pnpm       # …/mise/installs/pnpm/10.15.0/pnpm
+hash -r && "$(mise which pnpm)" -v
+# or: mise exec -- $(mise which pnpm) build
+```
+
+Then:
+
 ```sh
 git submodule update --init --recursive
 node scripts/sync-from-upstream.mjs   # rewrite package.json from upstream/package.json
@@ -55,9 +73,12 @@ Adapter `src/` imports Upstream via `$lib/…`. Root Kit aliases those paths int
 writes into `upstream/`). Re-run `sync:upstream` after bumping the submodule pin.
 
 ```sh
-cp package/forkbombeu-temporal-ui-*.tgz examples/consumer/temporal-ui.tgz
-cd examples/consumer && pnpm install --ignore-workspace && pnpm add --ignore-workspace ./temporal-ui.tgz
+# from repo root (after pnpm build → package/)
+cd examples/consumer && pnpm install
 pnpm run build && pnpm exec vite preview --port 5199 --strictPort
 ```
+
+Consumer depends on `file:../../package` (the build output dir). If install fails with
+ENOENT on that path, run `pnpm build` at the repo root first.
 
 Requires Node ≥ 22.14 and pnpm ≥ 10.10.
