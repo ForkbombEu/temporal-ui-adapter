@@ -8,8 +8,10 @@
  * graph → scoped/split Tailwind CSS → optional @buf vendoring → trim deps → package.json.
  *
  * IDE and stage share the same mental model: Adapter imports `$lib/…` which means
- * Upstream `src/lib` (root `svelte.config.js` / `tsconfig.json` for edit-time;
- * stage `svelte.config.js` points `$lib` at the staged lib for packaging).
+ * Upstream `src/lib` (root Kit config aliases into `upstream/` for edit-time;
+ * stage uses `packaging/stage.*` with `$lib` → staged lib). Toolchain bins and
+ * `node_modules` come from the **root** install (`pnpm sync:upstream` then
+ * `pnpm install`), not from `upstream/node_modules`.
  *
  * CSS split: two Tailwind builds with different `content` arrays. Status content =
  * Rollup graph from `forkbomb/workflow-status.svelte` (badge-only). History content =
@@ -56,6 +58,7 @@ const dist = join(pkgDir, 'dist');
 const SCOPE = '.temporal-ui';
 const PACKAGE_VERSION_SUFFIX = '-fb.0';
 const lockPath = join(here, '.build.lock');
+const packagingDir = join(here, 'packaging');
 
 const adapterSrc = join(here, 'src');
 const upstreamLib = join(upstream, 'src/lib');
@@ -70,16 +73,22 @@ if (!existsSync(join(upstream, 'package.json'))) {
   );
   process.exit(1);
 }
-if (!existsSync(join(upstream, 'node_modules/.bin/svelte-package'))) {
+if (!existsSync(join(here, 'node_modules/.bin/svelte-package'))) {
   console.error(
-    `Upstream at ${upstream} is not installed (missing node_modules/.bin/svelte-package).\n` +
-      `  cd upstream && pnpm install --frozen-lockfile --ignore-scripts && pnpm exec svelte-kit sync`,
+    `Root toolchain not installed (missing node_modules/.bin/svelte-package).\n` +
+      `  node scripts/sync-from-upstream.mjs && pnpm install && pnpm exec svelte-kit sync`,
+  );
+  process.exit(1);
+}
+if (!existsSync(join(here, '.svelte-kit'))) {
+  console.error(
+    `Missing .svelte-kit at repo root. Run: pnpm exec svelte-kit sync`,
   );
   process.exit(1);
 }
 
-const requireUpstream = createRequire(join(upstream, 'package.json'));
-const bin = (name) => join(upstream, 'node_modules/.bin', name);
+const requireRoot = createRequire(join(here, 'package.json'));
+const bin = (name) => join(here, 'node_modules/.bin', name);
 
 /** rmSync can hit transient ENOTEMPTY on macOS; retry then fall back to rm -rf. */
 function rmrf(path) {
@@ -126,8 +135,16 @@ function prepareStage() {
   const stageLib = join(stageDir, 'src/lib');
   mkdirSync(join(stageDir, 'src'), { recursive: true });
   cpSync(upstreamLib, stageLib, { recursive: true });
-  cpSync(adapterSrc, join(stageLib, 'forkbomb'), { recursive: true });
 
+  const forkbombDir = join(stageLib, 'forkbomb');
+  mkdirSync(forkbombDir, { recursive: true });
+  // Adapter lives in root `src/` alongside Kit `app.html` — only copy package sources.
+  for (const ent of readdirSync(adapterSrc, { withFileTypes: true })) {
+    if (ent.name === 'app.html') continue;
+    cpSync(join(adapterSrc, ent.name), join(forkbombDir, ent.name), { recursive: true });
+  }
+
+  const rootPkg = JSON.parse(readFileSync(join(here, 'package.json'), 'utf8'));
   writeFileSync(
     join(stageDir, 'package.json'),
     `${JSON.stringify(
@@ -136,73 +153,21 @@ function prepareStage() {
         private: true,
         type: 'module',
         version: '0.0.0',
-      },
-      null,
-      2,
-    )}\n`,
-  );
-
-  writeFileSync(
-    join(stageDir, 'svelte.config.js'),
-    `import { sveltePreprocess } from 'svelte-preprocess';
-
-/** @type {import('@sveltejs/kit').Config} */
-export default {
-  preprocess: [sveltePreprocess({ postcss: true })],
-  compilerOptions: {
-    runes: ({ filename }) =>
-      filename.includes('node_modules') ? undefined : true,
-  },
-  kit: {
-    alias: {
-      $lib: 'src/lib',
-      '$lib/*': 'src/lib/*',
-      $types: 'src/lib/types',
-      '$types/*': 'src/lib/types/*',
-      '$components/*': 'src/components/*',
-    },
-  },
-};
-`,
-  );
-
-  writeFileSync(
-    join(stageDir, 'tsconfig.json'),
-    `${JSON.stringify(
-      {
-        compilerOptions: {
-          baseUrl: '.',
-          ignoreDeprecations: '6.0',
-          module: 'esnext',
-          moduleResolution: 'bundler',
-          target: 'esnext',
-          lib: ['esnext', 'DOM', 'DOM.Iterable'],
-          strict: true,
-          skipLibCheck: true,
-          resolveJsonModule: true,
-          verbatimModuleSyntax: true,
-          isolatedModules: true,
-          declaration: true,
-          emitDeclarationOnly: true,
-          allowJs: true,
-          checkJs: false,
-          paths: {
-            $lib: ['./src/lib'],
-            '$lib/*': ['./src/lib/*'],
-            $types: ['./src/lib/types'],
-            '$types/*': ['./src/lib/types/*'],
-            '$components/*': ['./src/components/*'],
-          },
+        peerDependencies: {
+          ...(rootPkg.peerDependencies ?? {}),
         },
-        include: ['src/lib/**/*'],
       },
       null,
       2,
     )}\n`,
   );
 
-  linkOrCopy(join(upstream, 'node_modules'), join(stageDir, 'node_modules'));
-  linkOrCopy(join(upstream, '.svelte-kit'), join(stageDir, '.svelte-kit'));
+  cpSync(join(packagingDir, 'stage.svelte.config.js'), join(stageDir, 'svelte.config.js'));
+  cpSync(join(packagingDir, 'stage.tsconfig.json'), join(stageDir, 'tsconfig.json'));
+
+  linkOrCopy(join(here, 'node_modules'), join(stageDir, 'node_modules'));
+  linkOrCopy(join(here, '.svelte-kit'), join(stageDir, '.svelte-kit'));
+  // Upstream postcss loads `./tailwind.config.ts` from cwd — stage links that file below.
   linkOrCopy(join(upstream, 'postcss.config.cjs'), join(stageDir, 'postcss.config.cjs'));
   linkOrCopy(join(upstream, 'tailwind.config.ts'), join(stageDir, 'tailwind.config.ts'));
   // $components/* and app.css live outside lib; link for preprocess / rare imports.
@@ -225,9 +190,9 @@ function isBare(id) {
 
 /** Collect runtime module ids + bare imports via a throwaway Vite/Rollup lib build. */
 async function collectGraph(entryRelative) {
-  const { build } = await import(pathToFileURL(requireUpstream.resolve('vite')).href);
+  const { build } = await import(pathToFileURL(requireRoot.resolve('vite')).href);
   const { svelte } = await import(
-    pathToFileURL(requireUpstream.resolve('@sveltejs/vite-plugin-svelte')).href
+    pathToFileURL(requireRoot.resolve('@sveltejs/vite-plugin-svelte')).href
   );
   const runtimeFiles = new Set();
   const runtimeImports = new Set();
@@ -337,7 +302,7 @@ module.exports = {
   execFileSync(
     bin('tailwindcss'),
     ['-c', twConfig, '-i', cssInput, '-o', tmpOut, '--minify'],
-    { cwd: upstream, stdio: 'inherit' },
+    { cwd: here, stdio: 'inherit' },
   );
   const scoped = scopeBareSelectors(readFileSync(tmpOut, 'utf8'));
   mkdirSync(dirname(outFile), { recursive: true });
@@ -361,9 +326,9 @@ function vendorBufPackages(runtimeUsed) {
   for (const name of bufNames) {
     let pkgRoot;
     try {
-      pkgRoot = dirname(requireUpstream.resolve(`${name}/package.json`));
+      pkgRoot = dirname(requireRoot.resolve(`${name}/package.json`));
     } catch {
-      const nm = join(upstream, 'node_modules', ...name.split('/'));
+      const nm = join(here, 'node_modules', ...name.split('/'));
       if (existsSync(nm)) pkgRoot = nm;
     }
     if (!pkgRoot || !existsSync(pkgRoot)) {

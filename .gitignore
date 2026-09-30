@@ -5,6 +5,8 @@ node_modules
 /.build
 /.build.lock
 /.build.lockdir
+/.svelte-kit
+/build
 /package
 /coverage
 examples/consumer/node_modules

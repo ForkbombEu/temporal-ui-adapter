@@ -38,15 +38,21 @@ pnpm add ./forkbombeu-temporal-ui-2.54.1-fb.0.tgz
 
 ## Develop
 
+Exploration branch (`explore/derived-deps-kit-root`): root deps are derived from
+Upstream. Install at the **repo root** (not inside `upstream/`). There is no root
+app page — the Host demo is `examples/consumer`.
+
 ```sh
 git submodule update --init --recursive
-cd upstream && pnpm install --frozen-lockfile --ignore-scripts && pnpm exec svelte-kit sync && cd ..
-node build.mjs   # → package/ + npm pack
+node scripts/sync-from-upstream.mjs   # rewrite package.json from upstream/package.json
+pnpm install                          # root toolchain + Upstream runtime deps
+pnpm exec svelte-kit sync             # also runs via prepare
+pnpm build                            # → package/ + uses root node_modules
 ```
 
-Adapter `src/` imports Upstream via `$lib/…`. Root `tsconfig.json` + `svelte.config.js` alias those paths into `upstream/` for the IDE. The build stages the same layout under `.build/stage/` (never writes into `upstream/`). Requires the Upstream install + `svelte-kit sync` above.
-
-Smoke Host (fixture data): `examples/consumer`.
+Adapter `src/` imports Upstream via `$lib/…`. Root Kit aliases those paths into
+`upstream/`. The build stages under `.build/stage/` using `packaging/stage.*` (never
+writes into `upstream/`). Re-run `sync:upstream` after bumping the submodule pin.
 
 ```sh
 cp package/forkbombeu-temporal-ui-*.tgz examples/consumer/temporal-ui.tgz
