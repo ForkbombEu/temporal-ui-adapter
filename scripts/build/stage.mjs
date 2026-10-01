@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { rmrf, linkOrCopy } from './fs.mjs';
+import { copyTreeFiltered, linkOrCopy, rmrf } from './fs.mjs';
 import {
   adapterSrc,
   here,
@@ -17,12 +17,23 @@ import {
   upstreamLib,
 } from './paths.mjs';
 
+/** Upstream trees never imported by the lean Adapter graph — skip before svelte-package. */
+const SKIP_UPSTREAM_DIRS = new Set(['catalog', 'svelte-mocks', 'test-utilities']);
+
+/** Co-located Storybook / unit-test sources — packaged then discarded by the prune step. */
+const SKIP_UPSTREAM_FILE =
+  /\.(stories|test|spec)\.|(\.snap|\.mdx|\.md)$/;
+
 /** Stage Upstream lib + Adapter under `.build/stage` (Upstream tree stays pristine). */
 export function prepareStage() {
   rmrf(stageDir);
   const stageLib = join(stageDir, 'src/lib');
   mkdirSync(join(stageDir, 'src'), { recursive: true });
-  cpSync(upstreamLib, stageLib, { recursive: true });
+  // Selective copy — drop stories/tests/catalog before svelte-package (biggest CPU win).
+  copyTreeFiltered(upstreamLib, stageLib, {
+    skipDir: (name) => SKIP_UPSTREAM_DIRS.has(name),
+    skipFile: (name) => SKIP_UPSTREAM_FILE.test(name),
+  });
 
   const forkbombDir = join(stageLib, 'forkbomb');
   mkdirSync(forkbombDir, { recursive: true });

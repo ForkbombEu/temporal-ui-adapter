@@ -1,6 +1,13 @@
 import { execSync } from 'node:child_process';
-import { mkdirSync, rmSync, symlinkSync, lstatSync } from 'node:fs';
-import { dirname } from 'node:path';
+import {
+  cpSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 
 /** rmSync can hit transient ENOTEMPTY on macOS; retry then fall back to rm -rf. */
 export function rmrf(path) {
@@ -39,4 +46,26 @@ export function linkOrCopy(target, linkPath) {
   rmrf(linkPath);
   mkdirSync(dirname(linkPath), { recursive: true });
   symlinkSync(target, linkPath);
+}
+
+/**
+ * Copy a directory tree with optional skip predicates.
+ * Prefer filtered cpSync over per-file hardlinks — Node linkSync×N is slower on APFS.
+ * @param {{ skipDir?: (name: string) => boolean, skipFile?: (name: string) => boolean }} [opts]
+ */
+export function copyTreeFiltered(src, dest, opts = {}) {
+  const { skipDir = () => false, skipFile = () => false } = opts;
+  mkdirSync(dest, { recursive: true });
+  for (const ent of readdirSync(src, { withFileTypes: true })) {
+    if (ent.name === '.' || ent.name === '..') continue;
+    const from = join(src, ent.name);
+    const to = join(dest, ent.name);
+    if (ent.isDirectory()) {
+      if (skipDir(ent.name)) continue;
+      copyTreeFiltered(from, to, opts);
+    } else if (ent.isFile() || ent.isSymbolicLink()) {
+      if (skipFile(ent.name)) continue;
+      cpSync(from, to);
+    }
+  }
 }

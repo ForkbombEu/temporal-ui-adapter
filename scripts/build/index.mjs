@@ -31,6 +31,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
+import { canReuseFullDist, writeFullDistStamp } from './cache.mjs';
 import { contentFiles, compileScopedCss } from './css.mjs';
 import { rmrf } from './fs.mjs';
 import { fixDateFnsTzInterop } from './fix-date-fns-tz.mjs';
@@ -39,7 +40,6 @@ import { acquireBuildLock } from './lock.mjs';
 import {
   assertBuildPrereqs,
   bin,
-  buildDir,
   dist,
   fullDist,
   pkgDir,
@@ -53,22 +53,30 @@ assertBuildPrereqs();
 acquireBuildLock();
 
 // ── 1. Stage Adapter + Upstream lib (Upstream tree stays pristine) ─────────
-prepareStage();
-const stagePkgOut = join(buildDir, 'stage-package');
-rmrf(stagePkgOut);
-rmrf(fullDist);
-execFileSync(bin('svelte-package'), ['-i', 'src/lib', '-o', stagePkgOut, '--tsconfig', 'tsconfig.json'], {
-  cwd: stageDir,
-  stdio: 'inherit',
-});
-mkdirSync(dirname(fullDist), { recursive: true });
-cpSync(stagePkgOut, fullDist, { recursive: true });
-rmrf(stagePkgOut);
+// Selective stage skips stories/tests/catalog; stamp skips svelte-package when
+// Upstream + Adapter sources are unchanged.
+if (canReuseFullDist()) {
+  console.log('[build] reuse .build/full (Upstream + Adapter unchanged)');
+} else {
+  prepareStage();
+  rmrf(fullDist);
+  execFileSync(
+    bin('svelte-package'),
+    ['-i', 'src/lib', '-o', fullDist, '--tsconfig', 'tsconfig.json'],
+    {
+      cwd: stageDir,
+      stdio: 'inherit',
+    },
+  );
+  writeFullDistStamp();
+}
 
 // ── 2. Runtime graphs (status vs history for CSS; union for package keep) ──
-const statusGraph = await collectGraph('forkbomb/workflow-status.svelte');
-const historyGraph = await collectGraph('forkbomb/workflow-history.svelte');
-const indexGraph = await collectGraph('forkbomb/index.js');
+const [statusGraph, historyGraph, indexGraph] = await Promise.all([
+  collectGraph('forkbomb/workflow-status.svelte'),
+  collectGraph('forkbomb/workflow-history.svelte'),
+  collectGraph('forkbomb/index.js'),
+]);
 
 const runtimeFiles = new Set([
   ...statusGraph.runtimeFiles,
