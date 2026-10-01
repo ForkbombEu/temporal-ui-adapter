@@ -1,24 +1,27 @@
 /**
- * Derive the root package.json toolchain from the pinned Upstream submodule.
+ * Derive root toolchain + shared pins from the pinned Upstream submodule.
  *
- * Root becomes a real Kit-shaped project that installs at the repo root.
- * Upstream stays pristine — we only read its package.json (and engines).
+ * - Rewrites root `package.json` from `upstream/package.json`
+ * - Copies as-is: `.npmrc`, `.node-version`, `.editorconfig`
+ * - Adapts `.tool-versions`: `nodejs` from Upstream `.node-version`; keeps Adapter `pnpm`
  *
- * Not copied: Upstream scripts/prepare/husky, product adapters, exports, files.
- * Publishable lean deps still come from build.mjs prune, not this manifest.
+ * Policy SoT: docs/upstream-dotfiles.md
+ * Upstream stays pristine — we only read it.
  *
  * Usage: node scripts/sync-from-upstream.mjs
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
-const upstreamPkgPath = join(root, 'upstream/package.json');
+const upstreamDir = join(root, 'upstream');
+const upstreamPkgPath = join(upstreamDir, 'package.json');
 const outPath = join(root, 'package.json');
 
 const PACKAGE_VERSION_SUFFIX = '-fb.0';
+const DEFAULT_PNPM = '10.15.0';
 
 /** DevDependencies needed to sync, package, and compile scoped CSS. */
 const TOOLCHAIN_DEV_DEPS = [
@@ -40,6 +43,16 @@ const TOOLCHAIN_DEV_DEPS = [
   'typescript',
   'vite',
 ];
+
+/** Dotfiles copied byte-for-byte from Upstream → root. */
+const COPY_AS_IS = ['.npmrc', '.node-version', '.editorconfig'];
+
+if (!existsSync(upstreamPkgPath)) {
+  console.error(
+    `[sync-from-upstream] Missing ${relative(root, upstreamPkgPath)}. Init the submodule first.`,
+  );
+  process.exit(1);
+}
 
 const upstream = JSON.parse(readFileSync(upstreamPkgPath, 'utf8'));
 
@@ -76,6 +89,8 @@ const pkg = {
     'sync:upstream': 'node scripts/sync-from-upstream.mjs',
     prepare: 'svelte-kit sync',
     build: 'node build.mjs',
+    // Package-contract smoke via examples/consumer (file:../../package).
+    dev: 'pnpm build && pnpm --dir examples/consumer install && pnpm --dir examples/consumer dev',
     pack: 'npm pack --pack-destination . --workdir package',
     check: 'svelte-check --tsconfig ./tsconfig.json',
   },
@@ -109,14 +124,62 @@ const pkg = {
 };
 
 writeFileSync(outPath, `${JSON.stringify(pkg, null, 2)}\n`);
+
+const copied = [];
+const skipped = [];
+for (const name of COPY_AS_IS) {
+  const src = join(upstreamDir, name);
+  const dest = join(root, name);
+  if (!existsSync(src)) {
+    skipped.push(name);
+    console.warn(`[sync-from-upstream] Upstream missing ${name} (skipped copy)`);
+    continue;
+  }
+  copyFileSync(src, dest);
+  copied.push(name);
+}
+
+/** Parse `v22.18.0` / `22.18.0` → `22.18.0` for mise `.tool-versions`. */
+function nodeVersionFromFile(contents) {
+  const raw = contents.trim().split(/\s+/)[0] ?? '';
+  return raw.replace(/^v/, '');
+}
+
+function readPnpmPin(toolVersionsPath) {
+  if (!existsSync(toolVersionsPath)) return DEFAULT_PNPM;
+  const match = readFileSync(toolVersionsPath, 'utf8').match(/^pnpm\s+(\S+)/m);
+  return match?.[1] ?? DEFAULT_PNPM;
+}
+
+const nodeVersionPath = join(upstreamDir, '.node-version');
+const toolVersionsPath = join(root, '.tool-versions');
+let toolVersionsSummary = null;
+if (existsSync(nodeVersionPath)) {
+  const nodejs = nodeVersionFromFile(readFileSync(nodeVersionPath, 'utf8'));
+  const pnpm = readPnpmPin(toolVersionsPath);
+  writeFileSync(toolVersionsPath, `pnpm ${pnpm}\nnodejs ${nodejs}\n`);
+  toolVersionsSummary = { preservedPnpm: pnpm, nodejs };
+} else {
+  console.warn(
+    '[sync-from-upstream] Upstream missing .node-version; left .tool-versions unchanged',
+  );
+}
+
 console.log(
   JSON.stringify(
     {
-      wrote: 'package.json',
-      version: pkg.version,
-      dependencies: Object.keys(pkg.dependencies).length,
-      devDependencies: Object.keys(pkg.devDependencies).length,
-      upstreamVersion: upstream.version,
+      wrote: {
+        'package.json': {
+          version: pkg.version,
+          dependencies: Object.keys(pkg.dependencies).length,
+          devDependencies: Object.keys(pkg.devDependencies).length,
+          upstreamVersion: upstream.version,
+        },
+        copiedAsIs: copied,
+        skippedCopy: skipped,
+        '.tool-versions': toolVersionsSummary,
+      },
+      policy: 'docs/upstream-dotfiles.md',
     },
     null,
     2,

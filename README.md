@@ -62,10 +62,11 @@ Then:
 
 ```sh
 git submodule update --init --recursive
-node scripts/sync-from-upstream.mjs   # rewrite package.json from upstream/package.json
+pnpm sync:upstream                    # package.json + shared Upstream pins (see docs/upstream-dotfiles.md)
 pnpm install                          # root toolchain + Upstream runtime deps
 pnpm exec svelte-kit sync             # also runs via prepare
 pnpm build                            # → package/ + uses root node_modules
+pnpm dev                              # build Package, then examples/consumer on :5199
 ```
 
 Adapter `src/` imports Upstream via `$lib/…`. Root Kit aliases those paths into
@@ -79,9 +80,9 @@ pnpm run build && pnpm exec vite preview --port 5199 --strictPort
 # or: pnpm dev  (clears Vite dep cache so file:../../package updates show up)
 ```
 
-Consumer depends on `file:../../package` (the build output dir). If install fails with
-ENOENT on that path, run `pnpm build` at the repo root first. After rebuilding the
-Adapter, restart `pnpm dev` (it wipes `node_modules/.vite`) so you are not stuck
-on a stale prebundle.
+Consumer (`examples/consumer`) is the Host smoke app (`@sveltejs/adapter-auto`, Tailwind 4)
+and depends on `file:../../package`. If install fails with ENOENT on that path, run
+`pnpm build` at the repo root first. After rebuilding the Adapter, restart `pnpm dev`
+(it wipes `node_modules/.vite`) so you are not stuck on a stale prebundle.
 
 Requires Node ≥ 22.14 and pnpm ≥ 10.10.

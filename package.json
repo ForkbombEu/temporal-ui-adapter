@@ -8,6 +8,7 @@
     "sync:upstream": "node scripts/sync-from-upstream.mjs",
     "prepare": "svelte-kit sync",
     "build": "node build.mjs",
+    "dev": "pnpm build && pnpm --dir examples/consumer install && pnpm --dir examples/consumer dev",
     "pack": "npm pack --pack-destination . --workdir package",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
