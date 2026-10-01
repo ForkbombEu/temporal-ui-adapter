@@ -1,6 +1,12 @@
 <script>
   import '../app.css';
-  import { WorkflowStatus } from '@forkbombeu/temporal-ui';
+  import { WorkflowStatus, WorkflowHistory } from '@forkbombeu/temporal-ui';
+  import historyFixture from '$lib/fixtures/history.fixture.json';
+  import execution from '$lib/fixtures/workflow.fixture.json';
+
+  //
+
+  const history = historyFixture.history;
 
   const demoStatuses = [
     'Running',
@@ -20,5 +26,8 @@
       <WorkflowStatus {status} />
     {/each}
   </div>
-  <a class="text-blue-600 underline" href="/demo">history</a>
+
+  <hr />
+
+  <WorkflowHistory {execution} {history} namespace="default" />
 </main>
