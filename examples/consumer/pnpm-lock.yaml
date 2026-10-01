@@ -12,9 +12,9 @@ importers:
         specifier: file:../../package
         version: file:../../package(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)
     devDependencies:
-      '@sveltejs/adapter-static':
-        specifier: ^3.0.8
-        version: 3.0.10(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))
+      '@sveltejs/adapter-auto':
+        specifier: ^6.0.0
+        version: 6.1.1(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))
       '@sveltejs/kit':
         specifier: ^2.53.0
         version: 2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0))
@@ -475,8 +475,8 @@ packages:
     peerDependencies:
       acorn: ^8.9.0
 
-  '@sveltejs/adapter-static@3.0.10':
-    resolution: {integrity: sha512-7D9lYFWJmB7zxZyTE/qxjksvMqzMuYrrsyh1f4AlZqeZeACPRySjbC3aFiY55wb1tWUaKOQG9PVbm74JcN2Iew==}
+  '@sveltejs/adapter-auto@6.1.1':
+    resolution: {integrity: sha512-cBNt4jgH4KuaNO5gRSB2CZKkGtz+OCZ8lPjRQGjhvVUD4akotnj2weUia6imLl2v07K3IgsQRyM36909miSwoQ==}
     peerDependencies:
       '@sveltejs/kit': ^2.0.0
 
@@ -1449,7 +1449,7 @@ snapshots:
     dependencies:
       acorn: 8.18.0
 
-  '@sveltejs/adapter-static@3.0.10(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))':
+  '@sveltejs/adapter-auto@6.1.1(@sveltejs/kit@2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))':
     dependencies:
       '@sveltejs/kit': 2.70.3(@sveltejs/vite-plugin-svelte@6.2.4(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0)))(svelte@5.57.1)(vite@7.3.6(jiti@2.7.0)(lightningcss@1.32.0))
 
