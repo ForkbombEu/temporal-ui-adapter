@@ -138,7 +138,7 @@
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@temporalio/activity": "1.19.0",
     "@temporalio/client": "1.19.0",
-    "@temporalio/common": "1.19.0",
+    "@temporalio/common": "1.24.0",
     "@temporalio/proto": "1.19.0",
     "@temporalio/worker": "1.19.0",
     "@temporalio/workflow": "1.19.0",
