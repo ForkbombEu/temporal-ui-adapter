@@ -1,12 +1,16 @@
-<script>
+<script lang="ts">
+  import type { ComponentProps } from 'svelte';
   import '../app.css';
   import { WorkflowStatus, WorkflowHistory } from '@forkbombeu/temporal-ui';
   import historyFixture from '$lib/fixtures/history.fixture.json';
-  import execution from '$lib/fixtures/workflow.fixture.json';
+  import executionFixture from '$lib/fixtures/workflow.fixture.json';
 
-  //
+  type Status = ComponentProps<typeof WorkflowStatus>['status'];
+  type HistoryProps = ComponentProps<typeof WorkflowHistory>;
 
-  const history = historyFixture.history;
+  // JSON imports are widened; assert into Adapter prop types for the smoke Host.
+  const execution = executionFixture as HistoryProps['execution'];
+  const history = historyFixture.history as HistoryProps['history'];
 
   const demoStatuses = [
     'Running',
@@ -16,7 +20,7 @@
     'Terminated',
     'TimedOut',
     'ContinuedAsNew',
-  ];
+  ] as const satisfies readonly Status[];
 </script>
 
 <main class="space-y-4 p-8">
