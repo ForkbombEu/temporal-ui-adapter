@@ -1,0 +1,3 @@
+# Derived-deps Kit root; stage never mutates Upstream
+
+We develop and package from a Kit-shaped **repo root** whose `package.json` is derived from Upstream (`scripts/sync-from-upstream.mjs`), with `pnpm install` at the root. The same script copies shared pins (`.npmrc`, `.node-version`, `.editorconfig`) and adapts `.tool-versions` (nodejs from Upstream, Adapter-owned pnpm) — see [upstream-dotfiles.md](../upstream-dotfiles.md). Upstream stays a pristine submodule: the packager stages under `.build/stage/` (Upstream `src/lib` + Adapter as `forkbomb`) and never writes into `upstream/`. Host demo lives in `examples/consumer`, not as a root app page. This is not a monorepo that treats Upstream as a workspace package.
