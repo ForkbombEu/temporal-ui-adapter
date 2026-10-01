@@ -1,56 +1,67 @@
 <script lang="ts">
-  import { setContext } from "svelte";
+  import { setContext } from 'svelte';
 
   import {
     HISTORY_CTX,
-    type HistoryContext,
-  } from "$lib/contexts/history-context";
-  import WorkflowHistoryLayout from "$lib/layouts/workflow-history-layout.svelte";
-  import WorkflowTimelineLayout from "$lib/layouts/workflow-timeline-layout.svelte";
-  import { toWorkflowExecution } from "$lib/models/workflow-execution";
-  // v2.54.1 overlay target. Absent from fork v2.52 `src/` (uses fullEventHistory stores).
+  } from '$lib/contexts/history-context';
+  import WorkflowHistoryLayout from '$lib/layouts/workflow-history-layout.svelte';
+  import WorkflowTimelineLayout from '$lib/layouts/workflow-timeline-layout.svelte';
+  import { toWorkflowExecution } from '$lib/models/workflow-execution';
   import {
     ingestHistoryEvent,
     reset,
     setPendingMetadata,
-  } from "$lib/services/grouped-event-buffer";
-  import { eventBuffer } from "$lib/services/grouped-event-buffer.svelte";
-  import { fullEventHistory } from "$lib/stores/events";
-  import { workflowRun } from "$lib/stores/workflow-run";
-  import type { HistoryEvent } from "$lib/types/events";
-  import type { TaskQueueResponse } from "$lib/types";
-  import type { WorkflowExecutionAPIResponse } from "$lib/types/workflows";
+  } from '$lib/services/grouped-event-buffer';
+  import { eventBuffer } from '$lib/services/grouped-event-buffer.svelte';
+  import { fullEventHistory } from '$lib/stores/events';
+  import { workflowRun } from '$lib/stores/workflow-run';
+  import type { HistoryEvent } from '$lib/types/events';
+  import type { TaskQueueResponse } from '$lib/types';
+  import type { WorkflowExecutionAPIResponse } from '$lib/types/workflows';
 
-  import { ensureI18n } from "./ensure-i18n";
-  import "./workflow-history.css";
+  import { setWorkflowRouteParams } from './app-bridge';
+  import { ensureI18n } from './ensure-i18n';
+  import './workflow-history.css';
 
   export type WorkflowHistoryProps = {
-    /** Temporal GetWorkflowExecution / describe-execution API body. */
     execution: WorkflowExecutionAPIResponse;
-    /** Raw history events (ingest converts via Upstream `toWorkflowEvent`). */
     history: HistoryEvent[];
     namespace: string;
-    /** Optional DescribeTaskQueue / pollers snapshot. Omit → Upstream defaults (Q6 B). */
     workers?: TaskQueueResponse;
+    /** Bisect aid: stub | timeline | history | full */
+    debugMode?: string;
   };
 
-  let { execution, history, namespace, workers }: WorkflowHistoryProps =
-    $props();
+  let {
+    execution,
+    history,
+    namespace,
+    workers,
+    debugMode = 'full',
+  }: WorkflowHistoryProps = $props();
 
   const workflow = $derived.by(() => {
     const model = toWorkflowExecution(execution);
-    Object.defineProperty(model, "canBeTerminated", {
+    Object.defineProperty(model, 'canBeTerminated', {
       value: false,
       configurable: true,
     });
     return model;
   });
 
+  $effect.pre(() => {
+    setWorkflowRouteParams({
+      namespace,
+      workflow: workflow.id,
+      run: workflow.runId,
+    });
+  });
+
   const latestEventId = $derived(
     history.reduce((max, event) => Math.max(max, parseInt(event.eventId)), 0),
   );
 
-  setContext<HistoryContext>(HISTORY_CTX, {
+  setContext(HISTORY_CTX, {
     fetchComplete: true,
     get latestEventId() {
       return latestEventId;
@@ -64,7 +75,6 @@
 
   let bufferedRunId: string | undefined;
 
-  // Sync Host props into Upstream stores/buffer (external module state — not component $state).
   $effect.pre(() => {
     workflowRun.update((run) => {
       if (workers !== undefined) {
@@ -77,11 +87,7 @@
       }
       return { ...run, workflow };
     });
-
-    setPendingMetadata(
-      workflow.pendingActivities ?? [],
-      workflow.pendingNexusOperations ?? [],
-    );
+    setPendingMetadata(workflow.pendingActivities ?? [], workflow.pendingNexusOperations ?? []);
   });
 
   $effect.pre(() => {
@@ -93,7 +99,6 @@
     for (const event of history) ingestHistoryEvent(event);
   });
 
-  // Upstream workflow-run-layout mirrors buffer → fullEventHistory for Input/Result.
   $effect(() => {
     fullEventHistory.set(eventBuffer.events);
   });
@@ -104,14 +109,22 @@
     class="temporal-ui"
     data-forkbomb="workflow-history"
     data-namespace={namespace}
+    data-debug={debugMode}
   >
-    <div class="views">
+    {#if debugMode === 'stub'}
+      <p>stub-ok {workflow.id}</p>
+    {:else if debugMode === 'timeline'}
       <WorkflowTimelineLayout />
-      <!-- History below timeline; hide duplicate Input/Result + error chrome. -->
-      <div class="history-below">
-        <WorkflowHistoryLayout />
+    {:else if debugMode === 'history'}
+      <WorkflowHistoryLayout />
+    {:else}
+      <div class="views">
+        <WorkflowTimelineLayout />
+        <div class="history-below">
+          <WorkflowHistoryLayout />
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 {/await}
 
@@ -121,13 +134,9 @@
     flex-direction: column;
     gap: 2rem;
   }
-
-  /* Both Upstream layouts own Input/Result — keep the timeline copy only. */
-  .history-below :global([data-testid="input-and-result"]) {
+  .history-below :global([data-testid='input-and-result']) {
     display: none;
   }
-
-  /* Prefer CSS-only link disable — no Upstream patches. */
   :global(.temporal-ui a[href]) {
     pointer-events: none;
     cursor: default;

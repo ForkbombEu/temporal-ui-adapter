@@ -20,7 +20,5 @@
       <WorkflowStatus {status} />
     {/each}
   </div>
-  <a class="text-blue-600 underline" href="/namespaces/default/workflows/demo/run-1"
-    >history</a
-  >
+  <a class="text-blue-600 underline" href="/demo">history</a>
 </main>

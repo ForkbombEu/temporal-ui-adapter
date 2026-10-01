@@ -34,7 +34,7 @@ pnpm add ./forkbombeu-temporal-ui-2.54.1-fb.0.tgz
 - Pass **raw** Temporal API get-execution body and history events; the Adapter converts.
 - CSS is imported by the components (scoped under `.temporal-ui`). Do not copy into `static/`.
 - Read-only: Host owns cancel/terminate. Internal Temporal links are disabled via CSS.
-- Zero-patch constraint: the Host **page** must still expose SvelteKit params named `namespace`, `workflow`, and `run` (values can match the props). Upstream builds `href`s with `resolve()` during render; missing `namespace` throws even when clicks are disabled.
+- Hosts pass props only — any Host route is fine. The Adapter bridges Upstream `$app` (`page.params` / `resolve` / filter `goto`) via `forkbomb/app-bridge`; Host Kit routes need not expose Temporal `namespace` / `workflow` / `run` params.
 
 ## Develop
 

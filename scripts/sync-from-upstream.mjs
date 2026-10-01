@@ -88,7 +88,7 @@ const pkg = {
   scripts: {
     'sync:upstream': 'node scripts/sync-from-upstream.mjs',
     prepare: 'svelte-kit sync',
-    build: 'node build.mjs',
+    build: 'node scripts/build/index.mjs',
     // Package-contract smoke via examples/consumer (file:../../package).
     dev: 'pnpm build && pnpm --dir examples/consumer install && pnpm --dir examples/consumer dev',
     pack: 'npm pack --pack-destination . --workdir package',

@@ -1,6 +1,6 @@
 import { sveltePreprocess } from 'svelte-preprocess';
 
-/** Stage config for svelte-package (copied into `.build/stage/` by build.mjs). */
+/** Stage config for svelte-package (copied into `.build/stage/` by scripts/build/). */
 /** @type {import('@sveltejs/kit').Config} */
 export default {
   preprocess: [sveltePreprocess({ postcss: true })],

@@ -6,7 +6,7 @@ Agent playbook for the **derived-deps Kit root** architecture. Vocabulary: [CONT
 
 **Global done:** `pnpm build` writes `package/` (no `routes/` leak); `pnpm dev` at `/` shows status badge + Timeline above Event History with populated Input/Result.
 
-**How to use `build.mjs`:** do **not** reinvent the packager from prose. Transplant `build.mjs` + `packaging/` from a known-good tree (this branch / prior release tag), then adjust only if Upstream APIs moved. Optional gated slices if you must rebuild it: stage+`svelte-package` → prune graph → scoped CSS → Buf vendor — green smoke after each slice.
+**How to use the packager:** do **not** reinvent it from prose. Transplant `scripts/build/` + thin root `build.mjs` re-export + `packaging/` from a known-good tree (this branch / prior release tag), then adjust only if Upstream APIs moved. Optional gated slices if you must rebuild it: stage+`svelte-package` → prune graph → scoped CSS → Buf vendor — green smoke after each slice. Prefer `node scripts/build/index.mjs` (`pnpm build`); `node build.mjs` still works via the re-export.
 
 ---
 
@@ -15,7 +15,7 @@ Agent playbook for the **derived-deps Kit root** architecture. Vocabulary: [CONT
 | Decision | Choice |
 |----------|--------|
 | Upstream | Submodule `upstream/` → `temporalio/ui` @ **v2.54.1** ([UPSTREAM.md](../UPSTREAM.md)) |
-| Adapter only outside Upstream | `src/` (Adapter files + demo `routes/`), `build.mjs`, `scripts/`, `packaging/`, docs |
+| Adapter only outside Upstream | `src/` (Adapter files + demo `routes/`), `scripts/build/` (+ thin root `build.mjs`), `scripts/`, `packaging/`, docs |
 | Lean Surface | `WorkflowHistory`, `WorkflowStatus` (+ CSS via component imports) |
 | Host Contract | Raw Temporal API in; Adapter converts; Host owns mutations; `canBeTerminated` false |
 | Styles | Adapter-compiled Upstream TW3 under `.temporal-ui` |
@@ -76,7 +76,7 @@ Root is Kit-shaped for IDE + `svelte-kit sync` + packaging bins — **not** the 
 1. Implement `scripts/sync-from-upstream.mjs` (SoT: `TOOLCHAIN_DEV_DEPS` + `COPY_AS_IS`):
    - Read `upstream/package.json` → write root manifest `@forkbombeu/temporal-ui` @ `${upstream.version}-fb.0`, `private`, `type: module`.
    - Full Upstream **dependencies**; picked packaging **devDependencies**; peers `svelte` + `@sveltejs/kit`.
-   - Scripts: `sync:upstream`, `prepare` → `svelte-kit sync`, `build` → `node build.mjs`, `pack`, `check`.
+   - Scripts: `sync:upstream`, `prepare` → `svelte-kit sync`, `build` → `node scripts/build/index.mjs`, `pack`, `check`.
    - Engines / overrides from Upstream; strip prepare/husky/product scripts.
    - Copy `.npmrc`, `.node-version`, `.editorconfig`; adapt `.tool-versions` (nodejs from Upstream, keep Adapter pnpm).
    - DevDep `@sveltejs/adapter-auto` (fallback pin if Upstream lacks it); strip `@sveltejs/adapter-static`.
@@ -130,10 +130,10 @@ Props: `status`, optional `delayed`, `taskFailure`. Badge inside `.temporal-ui` 
 
 ---
 
-## Phase 5 — Packaging (`packaging/` + `build.mjs`)
+## Phase 5 — Packaging (`packaging/` + `scripts/build/`)
 
 1. Commit `packaging/stage.svelte.config.js` and `stage.tsconfig.json` (`$lib` → staged `src/lib`).
-2. **Transplant** known-good `build.mjs` (see top). Required behavior checklist:
+2. **Transplant** known-good `scripts/build/` + thin root `build.mjs` re-export (see top). Required behavior checklist:
    - Exclusive `.build.lock`
    - Stage under `.build/stage/`: Upstream lib + Adapter as `forkbomb/` (skip `app.html`); link root `node_modules` + `.svelte-kit`; link Upstream postcss/tailwind/`src/components`/`app.css`
    - `svelte-package` from stage → `.build/full`
@@ -152,7 +152,7 @@ Props: `status`, optional `delayed`, `taskFailure`. Badge inside `.temporal-ui` 
 1. SvelteKit + Tailwind **4** Host. Dep: `"@forkbombeu/temporal-ui": "file:../../package"`.
 2. `preinstall` requires `../../package/package.json` (run root `pnpm build` first).
 3. `dev` wipes `node_modules/.vite` + `--force`.
-4. Route with Kit params **`namespace` / `workflow` / `run`** (Upstream `resolve()`), e.g. `…/workflows/[workflow]/[run]/+page@.svelte`.
+4. Any Host route is fine (e.g. `routes/demo/+page.svelte`). Adapter `app-bridge` + build rewrite satisfy Upstream `page.params` / `resolve` / filter `goto` — Host need not use Temporal-shaped Kit params.
 5. **Fixtures:** copy from this repo’s `examples/consumer/src/lib/fixtures/{workflow,history}.fixture.json`, or from Credimi (`DIDimo/webapp`) exports of the same shape. Do not invent a full history by hand.
 6. Map proto enum status → readable labels for `WorkflowStatus`.
 7. Render `<WorkflowStatus>` + `<WorkflowHistory {execution} {history} namespace="default" />`.
@@ -169,7 +169,7 @@ pnpm exec vite preview --port 5199 --strictPort
 
 ## Phase 7 — README + Release CI
 
-1. README: Host install from `.tgz`; raw props; scoped CSS; param names; Develop = submodule → sync → root install → sync Kit → `pnpm build` → consumer.
+1. README: Host install from `.tgz`; raw props; scoped CSS; props-only Host contract (no Temporal Kit params); Develop = submodule → sync → root install → sync Kit → `pnpm build` → consumer.
 2. **Replace** `.github/workflows/release-package.yml` if it still installs inside `upstream/`. Required flow:
    ```yaml
    - checkout (submodules: recursive)
@@ -177,7 +177,7 @@ pnpm exec vite preview --port 5199 --strictPort
    - node scripts/sync-from-upstream.mjs   # optional if committed package.json already matches pin
    - pnpm install                          # repo root
    - pnpm exec svelte-kit sync
-   - node build.mjs
+   - node scripts/build/index.mjs   # or node build.mjs (thin re-export)
    - (cd package && npm pack)
    - softprops/action-gh-release ← package/*.tgz
    ```
@@ -189,7 +189,7 @@ pnpm exec vite preview --port 5199 --strictPort
 
 ## Known failure modes
 
-| Symptom | Fix (already in good `build.mjs` / Adapter) |
+| Symptom | Fix (already in good `scripts/build/` / Adapter) |
 |---------|-----------------------------------------------|
 | Concurrent build corruption | `.build.lock` |
 | Empty Buf files in tarball | `cpSync` with `dereference: true` |
@@ -217,4 +217,4 @@ pnpm exec vite preview --port 5199 --strictPort
 
 ## Out of scope here
 
-Host migration (Credimi): switch to Release `.tgz`, replace iframe with `<WorkflowHistory>` / `<WorkflowStatus>`, Temporal-shaped route params, delete `static/temporal.css`. Track separately — not part of Package recreate.
+Host migration (Credimi): switch to Release `.tgz`, replace iframe with `<WorkflowHistory>` / `<WorkflowStatus>` on Host-owned routes (any path; Adapter bridges `$app`), delete `static/temporal.css`. Track separately — not part of Package recreate.
