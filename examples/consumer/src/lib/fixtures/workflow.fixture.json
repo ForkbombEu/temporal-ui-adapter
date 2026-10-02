@@ -1,0 +1,141 @@
+{
+  "devices": [
+    {
+      "device_id": "forkbomb-bv-andrea/multi-runner-a1/pixel7-android17",
+      "name": "Pixel7-Android17",
+      "live_view": false
+    }
+  ],
+  "executionConfig": {
+    "workflowRunTimeout": "86400s",
+    "defaultWorkflowTaskTimeout": "10s",
+    "taskQueue": {
+      "name": "PipelineTaskQueue",
+      "kind": "TASK_QUEUE_KIND_NORMAL"
+    },
+    "workflowExecutionTimeout": "86400s"
+  },
+  "workflowExecutionInfo": {
+    "mostRecentWorkerVersionStamp": {
+      "buildId": "908d047d892004a8cfc838e3aa17cb2d"
+    },
+    "startTime": "2026-09-30T12:54:14.321630221Z",
+    "closeTime": "2026-09-30T12:58:21.270372029Z",
+    "executionDuration": "246.948741808s",
+    "memo": {
+      "fields": {
+        "pipeline_run_type": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg=="
+          },
+          "data": "Im1hbnVhbCI="
+        },
+        "test": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg=="
+          },
+          "data": "IkNyZWRlbmNvIEJ1c2luZXNzIFdhbGxldCAoSXNzdWFuY2UvVmVyaWZpY2F0aW9uKSI="
+        },
+        "userID": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg=="
+          },
+          "data": "IjQ4NWg2eTR6eHYzdzN4ZSI="
+        }
+      }
+    },
+    "rootExecution": {
+      "workflowId": "Pipeline-credenco-business-wallet-issuance-verification-28f806b5-05a5-40e7-af6e-25e4fd6b667f",
+      "runId": "01a0f261-3e31-7999-80b0-7634f4dc2377"
+    },
+    "execution": {
+      "workflowId": "Pipeline-credenco-business-wallet-issuance-verification-28f806b5-05a5-40e7-af6e-25e4fd6b667f",
+      "runId": "01a0f261-3e31-7999-80b0-7634f4dc2377"
+    },
+    "type": {
+      "name": "Dynamic Pipeline Workflow"
+    },
+    "status": "WORKFLOW_EXECUTION_STATUS_COMPLETED",
+    "historyLength": "185",
+    "executionTime": "2026-09-30T12:54:14.321630221Z",
+    "stateTransitionCount": "126",
+    "searchAttributes": {
+      "indexedFields": {
+        "ActionsID": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJmb3JrYm9tYi1idi1hbmRyZWEvY3JlZGVuY28tYnVzaW5lc3Mtd2FsbGV0L2dldGNyZWRlbnRpYWwtZ2VuZXJpYyIsImZvcmtib21iLWJ2LWFuZHJlYS9jcmVkZW5jby1idXNpbmVzcy13YWxsZXQvaW5zdGFsbC1mcm9tLXBsYXlzdG9yZSIsImZvcmtib21iLWJ2LWFuZHJlYS9jcmVkZW5jby1idXNpbmVzcy13YWxsZXQvb25ib2FyZGluZyIsImZvcmtib21iLWJ2LWFuZHJlYS9jcmVkZW5jby1idXNpbmVzcy13YWxsZXQvdmVyaWZ5LWdlbmVyaWMtY3JlZGVudGlhbCJd"
+        },
+        "BuildIds": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJ1bnZlcnNpb25lZCIsInVudmVyc2lvbmVkOjkwOGQwNDdkODkyMDA0YThjZmM4MzhlM2FhMTdjYjJkIl0="
+        },
+        "CredentialsID": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJmb3JrYm9tYi1idi1hbmRyZWEvbWlzYy1jcmVkZW50aWFscy9jcmVkZW5jby1mYWtlLXBpZCJd"
+        },
+        "DeviceIdentifiers": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJmb3JrYm9tYi1idi1hbmRyZWEvbXVsdGktcnVubmVyLWExL3BpeGVsNy1hbmRyb2lkMTciXQ=="
+        },
+        "PipelineIdentifier": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZA=="
+          },
+          "data": "ImZvcmtib21iLWJ2LWFuZHJlYS9jcmVkZW5jby1idXNpbmVzcy13YWxsZXQtaXNzdWFuY2UtdmVyaWZpY2F0aW9uIg=="
+        },
+        "UseCaseID": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJmb3JrYm9tYi1idi1hbmRyZWEvbWlzYy12ZXJpZmljYXRpb25zL2NyZWRlbmNvLWZha2UtcGlkIl0="
+        },
+        "VersionsID": {
+          "metadata": {
+            "encoding": "anNvbi9wbGFpbg==",
+            "type": "S2V5d29yZExpc3Q="
+          },
+          "data": "WyJpbnN0YWxsZWRfZnJvbV9leHRlcm5hbF9zb3VyY2UiXQ=="
+        }
+      }
+    },
+    "autoResetPoints": {
+      "points": [
+        {
+          "buildId": "908d047d892004a8cfc838e3aa17cb2d",
+          "runId": "01a0f261-3e31-7999-80b0-7634f4dc2377",
+          "firstWorkflowTaskCompletedId": "4",
+          "createTime": "2026-09-30T12:54:14.361249336Z",
+          "resettable": true
+        }
+      ]
+    },
+    "taskQueue": "PipelineTaskQueue",
+    "historySizeBytes": "554033",
+    "firstRunId": "01a0f261-3e31-7999-80b0-7634f4dc2377"
+  },
+  "workflowExtendedInfo": {
+    "executionExpirationTime": "2026-10-01T12:54:14.321Z",
+    "runExpirationTime": "2026-10-01T12:54:14.321Z",
+    "originalStartTime": "2026-09-30T12:54:14.321630221Z",
+    "requestIdInfos": {
+      "dfeab181-9209-4cdb-b369-ee1e564622a1": {
+        "eventId": "1",
+        "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED"
+      }
+    }
+  }
+}

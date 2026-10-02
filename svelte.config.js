@@ -1,48 +1,34 @@
 import adapter from '@sveltejs/adapter-static';
-import vercel from '@sveltejs/adapter-vercel';
 import { sveltePreprocess } from 'svelte-preprocess';
 
-// Workaround until SvelteKit uses Vite 2.3.8 (and it's confirmed to fix the Tailwind JIT problem)
-const mode = process.env.NODE_ENV;
-const dev = mode === 'development';
-process.env.TAILWIND_MODE = dev ? 'watch' : 'build';
-
-const ci = !!process.env.VERCEL;
-
-const buildPath = process.env.BUILD_PATH || 'build';
-
+/**
+ * Kit config for IDE + `svelte-kit sync` only — no app routes here.
+ * Smoke Host / +page lives in `examples/consumer`.
+ * `$lib` means Upstream (same mental model as the package stage).
+ * Adapter sources live in `src/*.svelte` (not under `$lib`).
+ */
 /** @type {import('@sveltejs/kit').Config} */
-export default {
-  // Consult https://github.com/sveltejs/svelte-preprocess
-  // for more information about preprocessors
-  preprocess: [
-    sveltePreprocess({
-      postcss: true,
-    }),
-  ],
+const config = {
+  preprocess: [sveltePreprocess({ postcss: true })],
+  compilerOptions: {
+    runes: ({ filename }) =>
+      filename.includes('node_modules') ? undefined : true,
+  },
   kit: {
+    adapter: adapter({
+      fallback: 'index.html',
+      pages: 'build',
+      assets: 'build',
+    }),
     alias: {
-      $lib: 'src/lib',
-      '$lib/*': 'src/lib/*',
-      $types: 'src/lib/types',
-      '$types/*': 'src/lib/types/*',
-      '$components/*': 'src/components/*',
-      '$fixtures/*': 'src/fixtures/*',
+      $lib: 'upstream/src/lib',
+      '$lib/*': 'upstream/src/lib/*',
+      $types: 'upstream/src/lib/types',
+      '$types/*': 'upstream/src/lib/types/*',
+      '$components/*': 'upstream/src/components/*',
     },
-
-    adapter: ci
-      ? vercel()
-      : adapter({
-          fallback: 'index.html',
-          pages: buildPath,
-          assets: buildPath,
-        }),
-    prerender: {
-      entries: [],
-    },
-    csp: {
-      mode: 'auto',
-      directives: { 'script-src': ['strict-dynamic'] },
-    },
+    prerender: { entries: [] },
   },
 };
+
+export default config;
